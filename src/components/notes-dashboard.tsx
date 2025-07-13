@@ -4,87 +4,119 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { v4 as uuidv4 } from "uuid";
 import { SearchIcon, PlusIcon, Trash2Icon, PencilIcon } from "lucide-react";
 import { EditNoteDialog } from "@/components/dialogs/edit-note";
 import { DeleteNoteDialog } from "@/components/dialogs/delete-note";
+import {
+  getNotes,
+  createNote,
+  updateNote,
+  deleteNote,
+} from "@/app/notes/actions";
+import { v4 as uuidv4 } from "uuid";
 
 type Note = {
   id: string;
   userId: string;
   content: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 };
-
-function getNotes(userId: string): Note[] {
-  if (typeof window === "undefined") return [];
-  const data = localStorage.getItem(`notes_${userId}`);
-  return data ? JSON.parse(data) : [];
-}
-
-function saveNotes(userId: string, notes: Note[]) {
-  localStorage.setItem(`notes_${userId}`, JSON.stringify(notes));
-}
 
 export function NotesDashboard({ userId }: { userId: string }) {
   const [notes, setNotes] = React.useState<Note[]>([]);
   const [search, setSearch] = React.useState("");
   const [newNote, setNewNote] = React.useState("");
-
   const [editDialogOpen, setEditDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [selectedNote, setSelectedNote] = React.useState<Note | null>(null);
+  const [loading, setLoading] = React.useState(false);
 
-  React.useEffect(() => {
-    setNotes(getNotes(userId));
+  const fetchNotes = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getNotes(userId);
+      setNotes(data as Note[]);
+    } catch (error) {
+      console.error("Failed to fetch notes:", error);
+    } finally {
+      setLoading(false);
+    }
   }, [userId]);
 
-  function handleAdd() {
+  React.useEffect(() => {
+    fetchNotes();
+  }, [fetchNotes]);
+
+  async function handleAdd() {
     if (!newNote.trim()) return;
-    const note: Note = {
-      id: uuidv4(),
+    const tempId = uuidv4();
+    const now = new Date();
+    const optimisticNote: Note = {
+      id: tempId,
       userId,
       content: newNote,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     };
-    const updated = [note, ...notes];
-    setNotes(updated);
-    saveNotes(userId, updated);
+    setNotes((prev) => [optimisticNote, ...prev]);
     setNewNote("");
+    setLoading(true);
+    try {
+      await createNote(userId, optimisticNote.content);
+      await fetchNotes();
+    } catch (error) {
+      console.error("Failed to create note:", error);
+      setNotes((prev) => prev.filter((note) => note.id !== tempId));
+      alert("Failed to add note. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function openEditDialog(note: Note) {
-    setSelectedNote(note);
-    setEditDialogOpen(true);
-  }
-
-  function handleSaveEdit(newContent: string) {
+  // Optimistic Update
+  async function handleSaveEdit(newContent: string) {
     if (!selectedNote) return;
-    const updated = notes.map((n) =>
-      n.id === selectedNote.id
-        ? { ...n, content: newContent, updatedAt: new Date().toISOString() }
-        : n,
+    const prevNotes = [...notes];
+    setNotes((prev) =>
+      prev.map((note) =>
+        note.id === selectedNote.id
+          ? { ...note, content: newContent, updatedAt: new Date() }
+          : note,
+      ),
     );
-    setNotes(updated);
-    saveNotes(userId, updated);
     setEditDialogOpen(false);
     setSelectedNote(null);
+    setLoading(true);
+    try {
+      await updateNote(selectedNote.id, newContent);
+      await fetchNotes();
+    } catch (error) {
+      console.error("Failed to update note:", error);
+      setNotes(prevNotes);
+      alert("Failed to update note. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function openDeleteDialog(note: Note) {
-    setSelectedNote(note);
-    setDeleteDialogOpen(true);
-  }
-
-  function handleDelete() {
+  async function handleDelete() {
     if (!selectedNote) return;
-    const updated = notes.filter((n) => n.id !== selectedNote.id);
-    setNotes(updated);
-    saveNotes(userId, updated);
+    const prevNotes = [...notes];
+    setNotes((prev) => prev.filter((note) => note.id !== selectedNote.id));
     setDeleteDialogOpen(false);
     setSelectedNote(null);
+    setLoading(true);
+    try {
+      await deleteNote(selectedNote.id);
+      await fetchNotes();
+    } catch (error) {
+      console.error("Failed to delete note:", error);
+      setNotes(prevNotes);
+      alert("Failed to delete note. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   const filteredNotes = notes.filter((note) =>
@@ -103,6 +135,7 @@ export function NotesDashboard({ userId }: { userId: string }) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-10"
+          disabled={loading}
         />
       </div>
       <div className="flex gap-2 mb-6">
@@ -111,14 +144,21 @@ export function NotesDashboard({ userId }: { userId: string }) {
           value={newNote}
           onChange={(e) => setNewNote(e.target.value)}
           rows={2}
+          disabled={loading}
         />
-        <Button onClick={handleAdd} className="h-fit">
+        <Button
+          onClick={handleAdd}
+          className="h-fit"
+          disabled={loading || !newNote.trim()}
+        >
           <PlusIcon className="mr-2 h-4 w-4" />
           Add
         </Button>
       </div>
       <ul className="space-y-4">
-        {filteredNotes.length === 0 ? (
+        {loading && notes.length === 0 ? (
+          <li>Loading...</li>
+        ) : filteredNotes.length === 0 ? (
           <li className="text-muted-foreground">No notes found.</li>
         ) : (
           filteredNotes.map((note) => (
@@ -139,7 +179,11 @@ export function NotesDashboard({ userId }: { userId: string }) {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => openEditDialog(note)}
+                  onClick={() => {
+                    setSelectedNote(note);
+                    setEditDialogOpen(true);
+                  }}
+                  disabled={loading}
                 >
                   <PencilIcon className="mr-1 h-4 w-4" />
                   Edit
@@ -147,7 +191,11 @@ export function NotesDashboard({ userId }: { userId: string }) {
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() => openDeleteDialog(note)}
+                  onClick={() => {
+                    setSelectedNote(note);
+                    setDeleteDialogOpen(true);
+                  }}
+                  disabled={loading}
                 >
                   <Trash2Icon className="mr-1 h-4 w-4" />
                   Delete
