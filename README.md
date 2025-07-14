@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Next.js Notes App
 
-## Getting Started
+A simple fullstack notes app built with Next.js 15, Drizzle ORM, and PostgreSQL. Supports authentication, optimistic UI, and persistent storage.
 
-First, run the development server:
+## Features
+
+- ⚡ **Next.js App Router** - Built with React Server Components & Server Actions
+- 🗄️ **Drizzle ORM + PostgreSQL** - Type-safe database operations with hosted Postgres (Supabase, Railway, Neon, etc.)
+- 🔐 **Authentication** - Secure user authentication (Auth0 or your choice)
+- ✨ **Optimistic UI** - Instant UI updates with server synchronization
+- 🎨 **Modern UI** - Clean interface built with shadcn/ui components
+- 📝 **Full CRUD Operations** - Create, read, update, and delete notes
+
+## Tech Stack
+
+- **Framework**: Next.js 15
+- **Database**: PostgreSQL with Drizzle ORM
+- **Authentication**: Auth0 (configurable)
+- **UI Components**: shadcn/ui
+- **Styling**: Tailwind CSS
+- **Hosting**: Vercel (recommended)
+
+## Prerequisites
+
+- Node.js 18+
+- npm/yarn/pnpm/
+- PostgreSQL database (cloud provider account)
+
+## Setup
+
+### 1. Clone & Install
+
+```bash
+git clone <this-repo>
+cd <this-repo>
+npm install
+```
+
+### 2. Configure Database
+
+Create a free PostgreSQL database from one of these providers:
+- [Railway](https://railway.app)
+- [Neon](https://neon.tech)
+- [PlanetScale](https://planetscale.com)
+
+Copy your database connection string and add it to your environment variables:
+
+```bash
+# .env
+DATABASE_URL="postgresql://username:password@host:port/database"
+```
+
+### 3. Run Database Migrations
+
+Generate and run the database schema:
+
+```bash
+npx drizzle-kit push
+```
+
+### 4. Authentication Setup
+
+Configure your authentication provider. For Auth0:
+
+```bash
+# .env
+AUTH0_SECRET='your-auth0-secret'
+APP_BASE_URL='http://localhost:3000'
+AUTH0_DOMAIN='https://your-domain.auth0.com'
+AUTH0_CLIENT_ID='your-client-id'
+AUTH0_CLIENT_SECRET='your-client-secret'
+```
+
+### 5. Start Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit [http://localhost:3000](http://localhost:3000) to see your app running.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Basic Operations
 
-## Learn More
+- **Create Note**: Click the "New Note" button to add a new note
+- **Edit Note**: Click on any note to edit its content
+- **Delete Note**: Use the delete button to remove notes
+- **Real-time Updates**: All changes are instantly reflected in the UI
 
-To learn more about Next.js, take a look at the following resources:
+### Key Features
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Optimistic Updates**: Changes appear immediately while syncing with the server
+- **Persistent Storage**: All notes are stored in your PostgreSQL database
+- **User Authentication**: Each user sees only their own notes
+- **Responsive Design**: Works seamlessly on desktop and mobile
