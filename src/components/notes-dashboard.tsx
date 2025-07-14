@@ -14,6 +14,7 @@ import {
   deleteNote,
 } from "@/app/notes/actions";
 import { v4 as uuidv4 } from "uuid";
+import { format } from "date-fns";
 
 type Note = {
   id: string;
@@ -169,10 +170,12 @@ export function NotesDashboard({ userId }: { userId: string }) {
               <div className="whitespace-pre-wrap">{note.content}</div>
               <div className="flex gap-2 text-xs text-muted-foreground">
                 <span>
-                  Created: {new Date(note.createdAt).toLocaleString()}
+                  Created:{" "}
+                  {format(new Date(note.createdAt), "MMM d, yyyy, h:mm a")}
                 </span>
                 <span>
-                  Updated: {new Date(note.updatedAt).toLocaleString()}
+                  Updated:{" "}
+                  {format(new Date(note.updatedAt), "MMM d, yyyy, h:mm a")}
                 </span>
               </div>
               <div className="flex gap-2 mt-2">
